@@ -42,28 +42,29 @@ if st.button("계산하기"):
             stock_name = stock.info.get('longName') or ticker_input
             total_krw = current_price * quantity * usd_krw_rate
 
-            # 4. 화면 출력용 문자열 미리 생성 (f-string 오류 원천 차단)
+            # 4. 화면 출력용 문자열 미리 생성
             formatted_price = "${:,.2f}".format(current_price)
             formatted_total = "{:,.0f} 원".format(total_krw)
             formatted_rate = "{:,.1f} 원/$".format(usd_krw_rate)
 
             st.divider()
-            col1, col2 = st.columns(2)
+            col1, col2 = st.columns(2) # 2개의 컬럼으로 나눔
             
             with col1:
                 st.metric("종목명", stock_name)
-                st.metric("수량", "{:,} 주".format(int(quantity)))
+                st.metric("주당 가격", formatted_price) # 주당 가격을 여기에 추가
             
             with col2:
+                st.metric("수량", "{:,} 주".format(int(quantity)))
                 st.metric("현재 환율", formatted_rate)
                 st.metric("원화 총액", formatted_total)
 
-            # 성공 메시지 출력
-            st.success("현재 {} ({})의 주당 가격은 {}입니다.".format(stock_name, ticker_input, formatted_price))
+            # 하단 성공 메시지는 제거합니다.
+            # st.success("현재 {} ({})의 주당 가격은 {}입니다.".format(stock_name, ticker_input, formatted_price))
         
         else:
             st.error("티커를 찾을 수 없거나 가격 정보를 가져올 수 없습니다. 티커를 다시 확인해 주세요.")
 
     except Exception as e:
-        st.error("데이터를 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
+        st.error(f"데이터를 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. (에러: {e})")
 
