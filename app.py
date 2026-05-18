@@ -4,6 +4,17 @@ import yfinance as yf
 # 페이지 설정
 st.set_page_config(page_title="주식 매수 계산기", layout="centered")
 
+# 긴 종목명을 위한 CSS 스타일 추가
+st.markdown("""
+    <style>
+    [data-testid="stMetricValue"] {
+        font-size: 1.6rem !important;
+        word-break: keep-all;
+        white-space: normal !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("📊 주식 매수 원화 계산기")
 st.write("티커를 입력하면 현재가와 환율을 적용하여 필요한 원화 금액을 계산합니다.")
 
