@@ -4,11 +4,11 @@ import yfinance as yf
 # 페이지 설정
 st.set_page_config(page_title="주식 매수 계산기", layout="centered")
 
-# CSS: 종목명 줄바꿈 및 가독성 개선
+# 긴 종목명 줄바꿈을 위한 최소한의 CSS
 st.markdown("""
     <style>
     [data-testid="stMetricValue"] div {
-        font-size: 1.4rem !important;
+        font-size: 1.2rem !important;
         white-space: normal !important;
         word-break: keep-all !important;
     }
@@ -18,31 +18,35 @@ st.markdown("""
 st.title("📊 주식 매수 원화 계산기")
 
 # 사용자 입력
-ticker_input = st.text_input("종목 티커 입력 (예: NVDA, SOXL, AAPL)", value="NVDA").upper()
+ticker_input = st.text_input("종목 티커 입력 (예: TSLA, NVDA, AAPL)", value="TSLA").upper()
 quantity = st.number_input("수량 입력 (정수)", min_value=1, value=1, step=1)
 
 if st.button("계산하기"):
     try:
-        # 1. 주식 데이터 객체 생성
+        # 1. 주식 객체 생성
         stock = yf.Ticker(ticker_input)
         
-        # 2. 가격 데이터 가져오기 (가장 확실한 history 방식 사용)
-        # 장 중에는 현재가, 장 종료 후에는 마지막 종가를 가져옵니다.
+        # 2. 가격 데이터 가져오기 (가장 안정적인 history 방식 사용)
+        # 장 중에는 실시간가, 장 종료 후에는 직전 종가를 가져옵니다.
         df = stock.history(period="1d")
         
         if not df.empty:
-            current_price = df['Close'].iloc[-1]
+            current_price = float(df['Close'].iloc[-1])
         else:
-            # history가 실패할 경우를 대비한 2차 확인
-            current_price = stock.info.get('regularMarketPrice') or stock.info.get('previousClose')
+            # history가 실패할 경우 fast_info에서 시도
+            current_price = stock.fast_info.get('last_price')
 
         # 3. 환율 데이터 가져오기 (USD/KRW)
         exchange = yf.Ticker("USDKRW=X")
         ex_df = exchange.history(period="1d")
-        usd_krw_rate = ex_df['Close'].iloc[-1] if not ex_df.empty else None
+        if not ex_df.empty:
+            usd_krw_rate = float(ex_df['Close'].iloc[-1])
+        else:
+            usd_krw_rate = exchange.fast_info.get('last_price')
 
-        # 4. 데이터가 모두 존재할 때 결과 출력
+        # 4. 데이터가 모두 확인된 경우에만 화면에 표시
         if current_price and usd_krw_rate:
+            # 종목명 가져오기
             stock_name = stock.info.get('longName') or ticker_input
             total_krw = current_price * quantity * usd_krw_rate
 
@@ -57,10 +61,11 @@ if st.button("계산하기"):
                 st.metric("현재 환율", f"{usd_krw_rate:,.1f} 원/$")
                 st.metric("원화 총액", f"{int(total_krw):,} 원")
 
-            # f-string 포맷팅을 {변수:포맷} 형태로 정확히 수정했습니다.
-            st.success(f"현재 {stock_name} ({ticker_input})의 주당 가격은 ,.2f입니다.")
+            # f-string 포맷팅을 엄격하게 적용하여 변수값을 출력합니다.
+            price_text = f",.2f"
+            st.success(f"현재 {stock_name} ({ticker_input})의 주당 가격은 {price_text}입니다.")
         else:
-            st.error("가격을 가져올 수 없습니다. 티커가 정확한지 확인해 주세요.")
+            st.warning("데이터를 가져오는 데 실패했습니다. 티커를 다시 확인해 주세요.")
 
     except Exception as e:
-        st.error(f"데이터를 불러오는 중 오류가 발생했습니다: {e}")
+        st.error(f"오류가 발생했습니다. 잠시 후 다시 시도해 주세요. (에러: {e})")
